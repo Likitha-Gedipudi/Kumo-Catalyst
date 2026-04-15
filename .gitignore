@@ -1,0 +1,20 @@
+node_modules/
+.next/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Python sidecar virtualenv — never commit
+kumo-sidecar/venv/
+
+# Large parquet data files
+data/
+
+# TS build cache
+tsconfig.tsbuildinfo
+
+# Generated/misc artifacts
+*.gv.pdf
+
