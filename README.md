@@ -260,6 +260,32 @@ npm run clean    # clears the Next.js build cache
 
 ---
 
+## Production Deployment
+
+To make Kumo Catalyst accessible to everyone, you can deploy the stack to the cloud.
+
+### 1. Frontend (Vercel)
+1. Import your repository into [Vercel](https://vercel.com).
+2. Set the following **Environment Variables**:
+   - `GEMINI_API_KEY`: Your Google AI Studio key.
+   - `NEXT_PUBLIC_SIDECAR_URL`: The URL of your deployed Railway sidecar (e.g., `https://kumo-api.up.railway.app`).
+3. Deploy.
+
+### 2. Backend Sidecar (Railway)
+1. Create a new project on [Railway](https://railway.app) and connect your repository.
+2. Set the **Root Directory** to `kumo-sidecar`.
+3. Set the following **Environment Variables**:
+   - `KUMO_API_KEY`: Your Kumo SDK key.
+   - `SIDECAR_CORS_ORIGINS`: Your Vercel frontend URL (e.g., `https://kumo-catalyst.vercel.app`).
+4. Railway will automatically pick up the `Procfile` and deploy.
+
+### 3. Visual Concept Explorer (GitHub Pages)
+1. Go to your Repository Settings > Pages.
+2. Under **Build and deployment**, set the source to **GitHub Actions**.
+3. The included `.github/workflows/deploy-visuals.yml` will automatically host the animated visuals at `https://<your-username>.github.io/Kumo-Catalyst/`.
+
+---
+
 ## Repository Layout
 
 | Path | Purpose |
