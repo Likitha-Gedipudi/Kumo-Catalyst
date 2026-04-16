@@ -73,6 +73,7 @@ export function StylistApp() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showReport, setShowReport] = useState(false);
 
+
   useEffect(() => {
     loadBoard();
   }, [loadBoard]);
@@ -590,6 +591,8 @@ export function StylistApp() {
       {showReport && (
         <ReportModal onClose={() => setShowReport(false)} />
       )}
+
+
     </div>
   );
 }

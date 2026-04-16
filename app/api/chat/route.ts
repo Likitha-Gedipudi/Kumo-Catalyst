@@ -67,6 +67,20 @@ const NUMBER_WORDS: Record<string, number> = {
   ten: 10,
 };
 
+/** Retry wrapper for transient Gemini API failures */
+async function withRetry<T>(fn: () => Promise<T>, retries = 2, delayMs = 1000): Promise<T> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt === retries) throw err;
+      console.warn(`[Retry] Attempt ${attempt + 1} failed, retrying in ${delayMs}ms...`, err);
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+  throw new Error("Unreachable");
+}
+
 function clampResultLimit(value: unknown, fallback = 5): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
@@ -442,11 +456,11 @@ Return ONLY valid JSON:
   "clarifying_question": string | null
 }`;
 
-      const intentRes = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+      const intentRes = await withRetry(() => ai.models.generateContent({
+        model: "gemini-flash-latest",
         contents: routerPrompt,
         config: { responseMimeType: "application/json" },
-      });
+      }));
 
       let intent: IntentPayload;
       try {
@@ -648,11 +662,11 @@ Return valid JSON:
   "pql": "PREDICT ..."
 }`;
 
-    const narrationRes = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+    const narrationRes = await withRetry(() => ai.models.generateContent({
+      model: "gemini-flash-latest",
       contents: narrationPrompt,
       config: { responseMimeType: "application/json" },
-    });
+    }));
     const narrationLatencyMs = Date.now() - narrationStartedAt;
 
     let narration = "Results loaded.";

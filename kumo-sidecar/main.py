@@ -416,11 +416,11 @@ def _precache():
     global cache, cache_warmed_at
     print("[INFO] Pre-caching predictions...")
 
-    # ── Cap 1: Item demand (all items → grouped by category) ──────────
+    # Cap 1: Item demand (top 15 items to avoid 20-minute cache warming lock)
     demand_rows = []
-    item_ids = sorted(items_df["item_id"].astype(int).unique().tolist())
+    item_ids = sorted(items_df["item_id"].astype(int).unique().tolist())[:15]
     items_lookup = items_df.set_index("item_id", drop=False)
-    print(f"  [INFO] Scoring projected demand for all {len(item_ids)} items...")
+    print(f"  [INFO] Scoring projected demand for top {len(item_ids)} items...")
 
     for item_id in item_ids:
         result = _predict_safe(f"PREDICT SUM(orders.price, 0, 30, days) FOR items.item_id={item_id}")
@@ -1446,6 +1446,7 @@ async def get_categories():
     if items_df is None:
         raise HTTPException(status_code=503, detail="Data not loaded")
     return list(items_df.category.unique())
+
 
 
 # ══════════════════════════════════════════════════════════════════════════

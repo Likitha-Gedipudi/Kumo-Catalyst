@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KumoRFM-2: Relational Foundation Model</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0a0a12;
+      color: #fff;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ─── Scene Management ─── */
+    .scene {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 1s ease;
+    }
+
+    .scene.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .scene.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* ─── Scene Navigation ─── */
+    .nav-bar {
+      position: fixed;
+      bottom: 24px;
+      left: 24px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(12, 12, 20, 0.7);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 28px;
+      padding: 6px 10px;
+    }
+
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      color: rgba(255, 255, 255, 0.7);
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.15;
+      cursor: default;
+    }
+
+    .nav-indicator {
+      display: flex;
+      gap: 6px;
+    }
+
+    .nav-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      transition: all 0.3s ease;
+    }
+
+    .nav-dot.active {
+      background: #e91e8c;
+      box-shadow: 0 0 8px rgba(233, 30, 140, 0.5);
+    }
+
+    /* ─── Shared ─── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+      z-index: 0;
+    }
+
+    .ambient {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.15;
+      z-index: 0;
+      animation: drift 12s ease-in-out infinite alternate;
+    }
+
+    .ambient-1 {
+      width: 500px;
+      height: 500px;
+      background: #9b1dff;
+      top: -100px;
+      left: -100px;
+    }
+
+    .ambient-2 {
+      width: 400px;
+      height: 400px;
+      background: #61dafb;
+      bottom: -80px;
+      left: 20%;
+      animation-delay: -4s;
+    }
+
+    .ambient-3 {
+      width: 450px;
+      height: 450px;
+      background: #ffc107;
+      bottom: -60px;
+      right: -50px;
+      animation-delay: -8s;
+    }
+
+    .ambient-4 {
+      width: 350px;
+      height: 350px;
+      background: #e91e8c;
+      top: 30%;
+      right: 10%;
+      animation-delay: -6s;
+    }
+
+    @keyframes drift {
+      to {
+        transform: translate(30px, -20px) scale(1.1);
+      }
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       SCENE 1: The KumoRFM Triangle
+       ══════════════════════════════════════════════════════════════ */
+    .s1-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 900px;
+      height: 100vh;
+      padding-top: 20px;
+    }
+
+    .lines-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .edge-line {
+      stroke-width: 2;
+      fill: none;
+      opacity: 0;
+      animation: edgeFadeIn 1s ease-out forwards;
+    }
+
+    .edge-line:nth-child(1) {
+      animation-delay: 1.5s;
+    }
+
+    .edge-line:nth-child(2) {
+      animation-delay: 1.8s;
+    }
+
+    .edge-line:nth-child(3) {
+      animation-delay: 2.1s;
+    }
+
+    .edge-line:nth-child(4) {
+      animation-delay: 2.4s;
+    }
+
+    .edge-line:nth-child(5) {
+      animation-delay: 2.7s;
+    }
+
+    .edge-line:nth-child(6) {
+      animation-delay: 3.0s;
+    }
+
+    @keyframes edgeFadeIn {
+      to {
+        opacity: 0.5;
+      }
+    }
+
+    .particle {
+      fill: #fff;
+      opacity: 0;
+      animation: particleFade 0.5s ease-out 3.5s forwards;
+    }
+
+    @keyframes particleFade {
+      to {
+        opacity: 0.8;
+      }
+    }
+
+    .hub {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      transform: scale(0);
+      animation: hubPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .hub:nth-child(1) {
+      animation-delay: 0.3s;
+    }
+
+    .hub:nth-child(2) {
+      animation-delay: 0.6s;
+    }
+
+    .hub:nth-child(3) {
+      animation-delay: 0.9s;
+    }
+
+    @keyframes hubPop {
+      to {
+        transform: scale(1);
+      }
+    }
+
+    .hub-bubble {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: transform 0.3s ease;
+    }
+
+    .hub-bubble:hover {
+      transform: scale(1.1);
+    }
+
+    .hub-bubble::before {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2px solid currentColor;
+      opacity: 0.3;
+      animation: pulse-ring 2.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-ring {
+
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 0.3;
+      }
+
+      50% {
+        transform: scale(1.15);
+        opacity: 0.05;
+      }
+    }
+
+    .hub-icon {
+      font-size: 36px;
+      z-index: 1;
+    }
+
+    .hub-label {
+      font-weight: 600;
+      font-size: 16px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .hub-count {
+      font-size: 13px;
+      opacity: 0.5;
+      font-weight: 300;
+    }
+
+    .hub--users {
+      top: 60px;
+      left: 50%;
+      margin-left: -60px;
+    }
+
+    .hub--users .hub-bubble {
+      background: radial-gradient(circle at 30% 30%, #b44dff, #7b1dcc);
+      box-shadow: 0 0 60px rgba(155, 29, 255, 0.4);
+      color: #b44dff;
+    }
+
+    .hub--items {
+      bottom: 80px;
+      left: 12%;
+      margin-left: -60px;
+    }
+
+    .hub--items .hub-bubble {
+      background: radial-gradient(circle at 30% 30%, #7eeaff, #3ba8c4);
+      box-shadow: 0 0 60px rgba(97, 218, 251, 0.4);
+      color: #61dafb;
+    }
+
+    .hub--orders {
+      bottom: 80px;
+      right: 12%;
+      margin-right: -60px;
+    }
+
+    .hub--orders .hub-bubble {
+      background: radial-gradient(circle at 30% 30%, #ffd54f, #d4a017);
+      box-shadow: 0 0 60px rgba(255, 193, 7, 0.4);
+      color: #ffc107;
+    }
+
+    .kumo-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      animation: hubPop 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1.2s forwards;
+    }
+
+    .kumo-bubble {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ff6eb4, #c2185b);
+      box-shadow: 0 0 80px rgba(233, 30, 140, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: kumo-glow 3s ease-in-out infinite;
+    }
+
+    @keyframes kumo-glow {
+
+      0%,
+      100% {
+        box-shadow: 0 0 60px rgba(233, 30, 140, 0.4);
+      }
+
+      50% {
+        box-shadow: 0 0 100px rgba(233, 30, 140, 0.7);
+      }
+    }
+
+    .kumo-bubble svg {
+      width: 44px;
+      height: 44px;
+    }
+
+    .kumo-label {
+      font-weight: 700;
+      font-size: 18px;
+      background: linear-gradient(135deg, #e91e8c, #9b1dff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 1px;
+    }
+
+    .mini-dots {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+
+    .mini-dot {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0;
+      animation: dotFloat 4s ease-in-out infinite, dotFadeIn 0.5s ease-out forwards;
+    }
+
+    @keyframes dotFloat {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-8px);
+      }
+    }
+
+    @keyframes dotFadeIn {
+      to {
+        opacity: 0.6;
+      }
+    }
+
+    .s1-title {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+    }
+
+    @keyframes titleIn {
+      to {
+        opacity: 1;
+      }
+    }
+
+    .s1-title h2 {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #e91e8c, #9b1dff, #61dafb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    .s1-title p {
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.5);
+      font-weight: 300;
+      max-width: 500px;
+      line-height: 1.6;
+    }
+
+    .edge-label {
+      position: absolute;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.6);
+      opacity: 0;
+      animation: titleIn 0.6s ease-out forwards;
+      white-space: nowrap;
+    }
+
+    .edge-label:nth-of-type(1) {
+      animation-delay: 3.2s;
+    }
+
+    .edge-label:nth-of-type(2) {
+      animation-delay: 3.4s;
+    }
+
+    .edge-label:nth-of-type(3) {
+      animation-delay: 3.6s;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       SCENE 2: Network Graph + PQL Query
+       ══════════════════════════════════════════════════════════════ */
+    .s2-wrap {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      position: relative;
+      z-index: 1;
+    }
+
+    .s2-graph {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .s2-graph canvas {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* PQL Panel */
+    .pql-panel {
+      width: 380px;
+      background: rgba(12, 12, 20, 0.85);
+      backdrop-filter: blur(20px);
+      border-left: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      flex-direction: column;
+      padding: 32px 24px;
+      gap: 24px;
+      overflow-y: auto;
+    }
+
+    .pql-panel-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: rgba(255, 255, 255, 0.35);
+      font-weight: 600;
+    }
+
+    .pql-block {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 20px;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .pql-block.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .pql-block-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: rgba(255, 255, 255, 0.3);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pql-block-label::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .pql-block-label.demand::before {
+      background: #61dafb;
+    }
+
+    .pql-block-label.churn::before {
+      background: #ff4d4d;
+    }
+
+    .pql-block-label.rec::before {
+      background: #ffc107;
+    }
+
+    .pql-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      line-height: 1.7;
+      color: #c9d1d9;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .pql-code .kw {
+      color: #e91e8c;
+      font-weight: 500;
+    }
+
+    .pql-code .fn {
+      color: #61dafb;
+    }
+
+    .pql-code .str {
+      color: #ffc107;
+    }
+
+    .pql-code .num {
+      color: #b44dff;
+    }
+
+    .pql-desc {
+      margin-top: 12px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+      line-height: 1.5;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 12px;
+    }
+
+    /* Scene 2 legend */
+    .s2-legend {
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .s2-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .s2-legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .s2-graph-title {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      z-index: 10;
+    }
+
+    .s2-graph-title h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .s2-graph-title p {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.3);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Ambient glow -->
+  <div class="ambient ambient-1"></div>
+  <div class="ambient ambient-2"></div>
+  <div class="ambient ambient-3"></div>
+  <div class="ambient ambient-4"></div>
+
+  <!-- ═══ SCENE 1: Triangle ═══ -->
+  <div class="scene visible" id="scene1">
+    <div class="s1-container">
+      <svg class="lines-svg" viewBox="0 0 900 700" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id="grad-pu" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#9b1dff" />
+            <stop offset="100%" stop-color="#e91e8c" />
+          </linearGradient>
+          <linearGradient id="grad-pc" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#61dafb" />
+            <stop offset="100%" stop-color="#e91e8c" />
+          </linearGradient>
+          <linearGradient id="grad-po" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#ffc107" />
+            <stop offset="100%" stop-color="#e91e8c" />
+          </linearGradient>
+          <linearGradient id="grad-ui" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#9b1dff" />
+            <stop offset="100%" stop-color="#61dafb" />
+          </linearGradient>
+          <linearGradient id="grad-uo" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#9b1dff" />
+            <stop offset="100%" stop-color="#ffc107" />
+          </linearGradient>
+          <linearGradient id="grad-io" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#61dafb" />
+            <stop offset="100%" stop-color="#ffc107" />
+          </linearGradient>
+        </defs>
+        <line class="edge-line" x1="450" y1="350" x2="450" y2="120" stroke="url(#grad-pu)" />
+        <line class="edge-line" x1="450" y1="350" x2="170" y2="540" stroke="url(#grad-pc)" />
+        <line class="edge-line" x1="450" y1="350" x2="730" y2="540" stroke="url(#grad-po)" />
+        <line class="edge-line" x1="450" y1="120" x2="170" y2="540" stroke="url(#grad-ui)" />
+        <line class="edge-line" x1="450" y1="120" x2="730" y2="540" stroke="url(#grad-uo)" />
+        <line class="edge-line" x1="170" y1="540" x2="730" y2="540" stroke="url(#grad-io)" />
+        <circle class="particle" r="3" fill="#b44dff">
+          <animateMotion dur="3s" repeatCount="indefinite" path="M450,350 L450,120" />
+        </circle>
+        <circle class="particle" r="3" fill="#61dafb">
+          <animateMotion dur="4s" repeatCount="indefinite" path="M450,350 L170,540" />
+        </circle>
+        <circle class="particle" r="3" fill="#ffc107">
+          <animateMotion dur="3.5s" repeatCount="indefinite" path="M450,350 L730,540" />
+        </circle>
+        <circle class="particle" r="2.5" fill="#9b1dff">
+          <animateMotion dur="5s" repeatCount="indefinite" path="M450,120 L170,540" />
+        </circle>
+        <circle class="particle" r="2.5" fill="#ffc107">
+          <animateMotion dur="4.5s" repeatCount="indefinite" path="M450,120 L730,540" />
+        </circle>
+        <circle class="particle" r="2.5" fill="#61dafb">
+          <animateMotion dur="4s" repeatCount="indefinite" path="M170,540 L730,540" />
+        </circle>
+      </svg>
+      <div class="mini-dots" id="miniDots"></div>
+      <div class="hub hub--users">
+        <div class="hub-bubble"><span class="hub-icon">👤</span></div>
+        <span class="hub-label">Users</span>
+        <span class="hub-count">1,000 customers</span>
+      </div>
+      <div class="hub hub--items">
+        <div class="hub-bubble"><span class="hub-icon">👗</span></div>
+        <span class="hub-label">Items</span>
+        <span class="hub-count">1,000 products</span>
+      </div>
+      <div class="hub hub--orders">
+        <div class="hub-bubble"><span class="hub-icon">🛒</span></div>
+        <span class="hub-label">Orders</span>
+        <span class="hub-count">267,774 transactions</span>
+      </div>
+      <div class="kumo-center">
+        <div class="kumo-bubble">
+          <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#fff"
+              d="M24.5 14.2c-.2-3.2-2.8-5.7-6-5.7-.5 0-1 .1-1.5.2a6.8 6.8 0 0 0-12.8 3.4c-2.4.4-4.2 2.5-4.2 5 0 2.8 2.3 5.1 5.1 5.1h15.8c2.5 0 4.6-2 4.6-4.5 0-1.8-1-3.3-2.4-3.9z" />
+          </svg>
+        </div>
+        <span class="kumo-label">KumoRFM</span>
+      </div>
+      <span class="edge-label" style="top: 230px; left: 46%; transform: translateX(-50%);">user_id</span>
+      <span class="edge-label" style="bottom: 195px; left: 28%;">item_id</span>
+      <span class="edge-label" style="bottom: 135px; left: 50%; transform: translateX(-50%);">purchases</span>
+      <div class="s1-title">
+        <h2>KumoRFM-2: Relational Foundation Model</h2>
+        <p>A next-generation Relational Graph Transformer architecture scaling to billion-scale data across Snowflake, Databricks, and S3 for zero-shot retail intelligence.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCENE 2: Network Graph + PQL ═══ -->
+  <div class="scene hidden" id="scene2">
+    <div class="s2-wrap">
+      <div class="s2-graph">
+        <canvas id="graphCanvas"></canvas>
+        <div class="s2-legend">
+          <div class="s2-legend-item">
+            <div class="s2-legend-dot" style="background:#b44dff"></div> Users
+          </div>
+          <div class="s2-legend-item">
+            <div class="s2-legend-dot" style="background:#61dafb"></div> Items
+          </div>
+          <div class="s2-legend-item">
+            <div class="s2-legend-dot" style="background:rgba(255,255,255,0.15)"></div> Purchase Edge
+          </div>
+        </div>
+        <div class="s2-graph-title">
+          <h3>H&M Purchase Graph</h3>
+          <p>Users connected to Items through 267K+ historical transactions</p>
+        </div>
+      </div>
+      <div class="pql-panel">
+        <span class="pql-panel-title">KumoRFM PQL Queries</span>
+
+        <div class="pql-block" id="pql1">
+          <div class="pql-block-label demand">Demand Forecast</div>
+          <div class="pql-code"><span class="kw">PREDICT</span> <span class="fn">SUM</span>(orders.price, <span
+              class="num">0</span>, <span class="num">30</span>, days)
+            <span class="kw">FOR</span> items.item_id <span class="kw">IN</span> <span
+              class="str">&lt;all_items&gt;</span>
+          </div>
+          <div class="pql-desc">Forecasts total revenue per item over the next 30 days using temporal graph patterns.
+          </div>
+        </div>
+
+        <div class="pql-block" id="pql2">
+          <div class="pql-block-label churn">Churn Prediction</div>
+          <div class="pql-code"><span class="kw">PREDICT</span> <span class="fn">COUNT</span>(orders.*, <span
+              class="num">0</span>, <span class="num">90</span>, days) = <span class="num">0</span>
+            <span class="kw">FOR</span> users.user_id = <span class="str">873</span>
+          </div>
+          <div class="pql-desc">Predicts the probability of zero orders in the next 90 days — identifying customers who
+            are about to churn.</div>
+        </div>
+
+        <div class="pql-block" id="pql3">
+          <div class="pql-block-label rec">Reverse Recommendation</div>
+          <div class="pql-code"><span class="kw">PREDICT</span> <span class="fn">LIST_DISTINCT</span>(orders.user_id,
+            <span class="num">0</span>, <span class="num">30</span>, days) <span class="kw">RANK TOP</span> <span
+              class="num">10</span>
+            <span class="kw">FOR</span> items.item_id = <span class="str">5</span>
+          </div>
+          <div class="pql-desc">Finds the top 10 users most likely to purchase a specific item — powering targeted
+            campaigns.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation bar -->
+  <div class="nav-bar">
+    <button class="nav-btn" id="prevBtn" onclick="goToScene(currentScene - 1)" disabled title="Previous">◀</button>
+    <div class="nav-indicator">
+      <div class="nav-dot active" id="dot0"></div>
+      <div class="nav-dot" id="dot1"></div>
+    </div>
+    <button class="nav-btn" id="nextBtn" onclick="goToScene(currentScene + 1)" title="Next">▶</button>
+  </div>
+
+  <script>
+    // ── Scene 1: Mini dots ──
+    const dotsContainer = document.getElementById('miniDots');
+    const hubs = [
+      { x: 450, y: 120, color: 'rgba(155, 29, 255, 0.5)', count: 20 },
+      { x: 170, y: 540, color: 'rgba(97, 218, 251, 0.5)', count: 25 },
+      { x: 730, y: 540, color: 'rgba(255, 193, 7, 0.5)', count: 30 },
+    ];
+    hubs.forEach(hub => {
+      for (let i = 0; i < hub.count; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'mini-dot';
+        const angle = (Math.PI * 2 * i) / hub.count + Math.random() * 0.5;
+        const radius = 80 + Math.random() * 60;
+        const cx = (hub.x / 900) * 100, cy = (hub.y / 700) * 100;
+        const dx = (Math.cos(angle) * radius / 900) * 100;
+        const dy = (Math.sin(angle) * radius / 700) * 100;
+        const size = 3 + Math.random() * 4;
+        dot.style.cssText = `left:calc(${cx + dx}% - ${size / 2}px);top:calc(${cy + dy}% - ${size / 2}px);width:${size}px;height:${size}px;background:${hub.color};animation-delay:${(Math.random() * 3 + 2).toFixed(1)}s,${(Math.random() * 2 + 2).toFixed(1)}s;animation-duration:${(3 + Math.random() * 3).toFixed(1)}s,0.5s;`;
+        dotsContainer.appendChild(dot);
+      }
+    });
+
+    // ── Scene Navigation ──
+    let currentScene = 0;
+    const scenes = [document.getElementById('scene1'), document.getElementById('scene2')];
+    let scene2Initialized = false;
+
+    function goToScene(idx) {
+      if (idx < 0 || idx >= scenes.length || idx === currentScene) return;
+      scenes[currentScene].classList.remove('visible');
+      scenes[currentScene].classList.add('hidden');
+      currentScene = idx;
+      scenes[currentScene].classList.remove('hidden');
+      scenes[currentScene].classList.add('visible');
+      if (idx === 1 && !scene2Initialized) {
+        scene2Initialized = true;
+        initScene2();
+      }
+      // Update nav buttons & dots
+      document.getElementById('prevBtn').disabled = currentScene === 0;
+      document.getElementById('nextBtn').disabled = currentScene === scenes.length - 1;
+      document.querySelectorAll('.nav-dot').forEach((d, i) => d.classList.toggle('active', i === currentScene));
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') goToScene(currentScene + 1);
+      if (e.key === 'ArrowLeft') goToScene(currentScene - 1);
+    });
+
+    // ── Scene 2: Canvas Network Graph + PQL reveal ──
+    function initScene2() {
+      const canvas = document.getElementById('graphCanvas');
+      const ctx = canvas.getContext('2d');
+      const graphDiv = canvas.parentElement;
+
+      function resize() {
+        canvas.width = graphDiv.clientWidth;
+        canvas.height = graphDiv.clientHeight;
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      // Generate a bipartite graph
+      const users = [], items = [], edges = [];
+      const W = canvas.width, H = canvas.height;
+      const userCount = 30, itemCount = 40;
+
+      for (let i = 0; i < userCount; i++) {
+        users.push({
+          x: 100 + Math.random() * (W * 0.35),
+          y: 80 + Math.random() * (H - 160),
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          r: 5 + Math.random() * 4,
+          label: `U${i + 1}`,
+        });
+      }
+      for (let i = 0; i < itemCount; i++) {
+        items.push({
+          x: W * 0.55 + Math.random() * (W * 0.35),
+          y: 80 + Math.random() * (H - 160),
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          r: 4 + Math.random() * 3,
+          label: `I${i + 1}`,
+        });
+      }
+
+      // Each user purchases 2-6 items
+      for (let u = 0; u < userCount; u++) {
+        const purchases = 2 + Math.floor(Math.random() * 5);
+        const chosen = new Set();
+        while (chosen.size < purchases) chosen.add(Math.floor(Math.random() * itemCount));
+        chosen.forEach(iIdx => edges.push({ u, i: iIdx, progress: 0, delay: Math.random() * 3 }));
+      }
+
+      let elapsed = 0;
+
+      function draw() {
+        elapsed += 0.016;
+        ctx.clearRect(0, 0, W, H);
+
+        // Update positions (gentle drift)
+        [...users, ...items].forEach(node => {
+          node.x += node.vx;
+          node.y += node.vy;
+          if (node.x < 40 || node.x > W - 40) node.vx *= -1;
+          if (node.y < 40 || node.y > H - 40) node.vy *= -1;
+        });
+
+        // Draw edges
+        edges.forEach(e => {
+          if (elapsed < e.delay) return;
+          e.progress = Math.min(1, e.progress + 0.02);
+          const u = users[e.u], it = items[e.i];
+          const ex = u.x + (it.x - u.x) * e.progress;
+          const ey = u.y + (it.y - u.y) * e.progress;
+          ctx.beginPath();
+          ctx.moveTo(u.x, u.y);
+          ctx.lineTo(ex, ey);
+          ctx.strokeStyle = `rgba(255,255,255,${0.06 * e.progress})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          // Particle at tip
+          if (e.progress < 1) {
+            ctx.beginPath();
+            ctx.arc(ex, ey, 2, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.fill();
+          }
+        });
+
+        // Draw user nodes
+        users.forEach(u => {
+          ctx.beginPath();
+          ctx.arc(u.x, u.y, u.r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(155, 29, 255, 0.7)';
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(u.x, u.y, u.r + 3, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(155, 29, 255, 0.15)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        });
+
+        // Draw item nodes
+        items.forEach(it => {
+          ctx.beginPath();
+          ctx.arc(it.x, it.y, it.r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(97, 218, 251, 0.7)';
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(it.x, it.y, it.r + 3, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(97, 218, 251, 0.15)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        });
+
+        requestAnimationFrame(draw);
+      }
+
+      draw();
+
+      // Staggered PQL reveal
+      setTimeout(() => document.getElementById('pql1').classList.add('show'), 800);
+      setTimeout(() => document.getElementById('pql2').classList.add('show'), 2200);
+      setTimeout(() => document.getElementById('pql3').classList.add('show'), 3600);
+    }
+  </script>
+</body>
+
+</html>

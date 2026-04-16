@@ -333,7 +333,7 @@ export const useStylistStore = create<StylistState>()(
           if (excludeLastDays != null && excludeLastDays > 0) {
             data.appliedFilters = { ...data.appliedFilters, excludeLastDays };
             if (!data.sensitivityNote) {
-              data.sensitivityNote = `Sensitivity preview: excluding roughly the last ${excludeLastDays} day(s) (demo).`;
+              data.sensitivityNote = `Sensitivity preview: excluding roughly the last ${excludeLastDays} day(s).`;
             }
           }
           set({ explainData: data });
@@ -422,7 +422,7 @@ export const useStylistStore = create<StylistState>()(
         }),
     }),
     {
-      name: "kumo-stylist-analytics",
+      name: "kumo-catalyst-analytics",
       partialize: (state) => ({
         sessions: state.sessions,
         activeSessionId: state.activeSessionId,

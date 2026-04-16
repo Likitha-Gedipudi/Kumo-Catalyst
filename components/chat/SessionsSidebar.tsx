@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, MessageSquarePlus, Trash2 } from "lucide-react";
 import { useStylistStore } from "@/lib/store";
 import type { ChatSession } from "@/lib/types";
@@ -25,6 +26,12 @@ export function SessionsSidebar({
   collapsed: boolean;
   onToggle: () => void;
 }) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const sessions = useStylistStore((s) => s.sessions);
   const activeSessionId = useStylistStore((s) => s.activeSessionId);
   const newSession = useStylistStore((s) => s.newSession);
@@ -101,7 +108,7 @@ export function SessionsSidebar({
                       >
                         <span className="session-item-title">{session.title}</span>
                         <span className="session-item-time">
-                          {formatRelativeTime(session.updatedAt)}
+                          {isClient ? formatRelativeTime(session.updatedAt) : ""}
                         </span>
                       </button>
                       <button
