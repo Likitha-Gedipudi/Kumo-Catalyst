@@ -279,7 +279,7 @@ function SummaryPage({ sections, pageStart }: { sections: ReportSection[]; pageS
 
       <View style={s.summaryContent}>
         <Text style={s.summaryHeading}>Key Actions</Text>
-        <Text style={s.summarySubheading}>Recommended actions based on today's analysis</Text>
+        <Text style={s.summarySubheading}>Recommended actions based on today&apos;s analysis</Text>
 
         {sections.map((sec, i) => (
           <View key={i} style={s.summaryItemWrap}>
